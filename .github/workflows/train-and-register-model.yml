@@ -13,14 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Install New Databricks CLI and jq
+      - name: Install Databricks CLI and jq
         run: |
           curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | bash
           databricks -v
@@ -28,41 +28,38 @@ jobs:
 
       - name: Configure Databricks CLI profile
         run: |
-          databricks configure --profile github --host $DATABRICKS_HOST --token $DATABRICKS_TOKEN
+          databricks configure --profile github --host "$DATABRICKS_HOST" --token "$DATABRICKS_TOKEN"
 
       - name: Trigger Databricks Job and Wait
         run: |
-          echo "Triggering job..."
-
-          RESPONSE=$(databricks jobs run-now --profile github \
-            --json '{
-              "job_id": 480467520180602,
-              "notebook_params": {
-                "SNOWFLAKE_ACCOUNT": "'"${{ secrets.SNOWFLAKE_ACCOUNT }}"'",
-                "SNOWFLAKE_USER": "'"${{ secrets.SNOWFLAKE_USER }}"'",
-                "SNOWFLAKE_PASSWORD": "'"${{ secrets.SNOWFLAKE_PASSWORD }}"'",
-                "SNOWFLAKE_WAREHOUSE": "'"${{ secrets.SNOWFLAKE_WAREHOUSE }}"'",
-                "SNOWFLAKE_DATABASE": "'"${{ secrets.SNOWFLAKE_DATABASE }}"'"
-              }
-            }')
+          echo "Triggering Databricks job..."
+          RESPONSE=$(databricks jobs run-now --profile github --json '{
+            "job_id": 480467520180602,
+            "notebook_params": {
+              "SNOWFLAKE_ACCOUNT": "'"${{ secrets.SNOWFLAKE_ACCOUNT }}"'",
+              "SNOWFLAKE_USER": "'"${{ secrets.SNOWFLAKE_USER }}"'",
+              "SNOWFLAKE_PASSWORD": "'"${{ secrets.SNOWFLAKE_PASSWORD }}"'",
+              "SNOWFLAKE_WAREHOUSE": "'"${{ secrets.SNOWFLAKE_WAREHOUSE }}"'",
+              "SNOWFLAKE_DATABASE": "'"${{ secrets.SNOWFLAKE_DATABASE }}"'"
+            }
+          }')
 
           echo "$RESPONSE"
-
           RUN_ID=$(echo "$RESPONSE" | jq -r '.run_id')
           echo "Triggered run_id: $RUN_ID"
 
           STATUS="PENDING"
           while [[ "$STATUS" == "PENDING" || "$STATUS" == "RUNNING" || "$STATUS" == "QUEUED" ]]; do
             sleep 15
-            STATUS=$(databricks runs get --profile github --run-id "$RUN_ID" | jq -r '.state.life_cycle_state')
+            STATUS=$(databricks jobs runs get --profile github --run-id "$RUN_ID" | jq -r '.state.life_cycle_state')
             echo "Current status: $STATUS"
           done
 
-          RESULT=$(databricks runs get --profile github --run-id "$RUN_ID" | jq -r '.state.result_state')
+          RESULT=$(databricks jobs runs get --profile github --run-id "$RUN_ID" | jq -r '.state.result_state')
 
           if [[ "$RESULT" != "SUCCESS" ]]; then
             echo "❌ Job failed with result: $RESULT"
             exit 1
           fi
 
-          echo "✅ Job completed successfully!"
+          echo "✅ Databricks job completed successfully!"
