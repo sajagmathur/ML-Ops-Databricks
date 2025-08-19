@@ -63,3 +63,77 @@ jobs:
           fi
 
           echo "✅ Databricks job completed successfully!"
+
+  Register_Model:
+    runs-on: ubuntu-latest
+    needs: Train_Model
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - name: Install Databricks CLI and jq
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | bash
+          databricks -v
+          sudo apt-get update && sudo apt-get install -y jq
+      - name: Configure Databricks CLI Profile
+        run: |
+          databricks configure --profile github --host "$DATABRICKS_HOST" --token "$DATABRICKS_TOKEN"
+      - name: Trigger Register Model Job and Wait
+        run: |
+          echo "Triggering Register Model job..."
+          RESPONSE=$(databricks jobs run-now --profile github --json '{
+            "job_id": 943662294519757
+          }')
+          echo "$RESPONSE"
+          RUN_ID=$(echo "$RESPONSE" | jq -r '.run_id')
+          echo "Triggered run_id: $RUN_ID"
+          STATUS="PENDING"
+          while [[ "$STATUS" == "PENDING" || "$STATUS" == "RUNNING" || "$STATUS" == "QUEUED" ]]; do
+            sleep 30
+            STATUS=$(databricks jobs get-run "$RUN_ID" --profile github | jq -r '.state.life_cycle_state')
+            echo "Current status: $STATUS"
+          done
+          RESULT=$(databricks jobs get-run "$RUN_ID" --profile github | jq -r '.state.result_state')
+          if [[ "$RESULT" != "SUCCESS" ]]; then
+            echo "❌ Register Model job failed with result: $RESULT"
+            exit 1
+          fi
+          echo "✅ Register Model job completed successfully!"
+
+  Serve_Model:
+    runs-on: ubuntu-latest
+    needs: Register_Model
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - name: Install Databricks CLI and jq
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | bash
+          databricks -v
+          sudo apt-get update && sudo apt-get install -y jq
+      - name: Configure Databricks CLI Profile
+        run: |
+          databricks configure --profile github --host "$DATABRICKS_HOST" --token "$DATABRICKS_TOKEN"
+      - name: Trigger Serve Model Job and Wait
+        run: |
+          echo "Triggering Serve Model job..."
+          RESPONSE=$(databricks jobs run-now --profile github --json '{
+            "job_id": 913217479963493
+          }')
+          echo "$RESPONSE"
+          RUN_ID=$(echo "$RESPONSE" | jq -r '.run_id')
+          echo "Triggered run_id: $RUN_ID"
+          STATUS="PENDING"
+          while [[ "$STATUS" == "PENDING" || "$STATUS" == "RUNNING" || "$STATUS" == "QUEUED" ]]; do
+            sleep 30
+            STATUS=$(databricks jobs get-run "$RUN_ID" --profile github | jq -r '.state.life_cycle_state')
+            echo "Current status: $STATUS"
+          done
+          RESULT=$(databricks jobs get-run "$RUN_ID" --profile github | jq -r '.state.result_state')
+          if [[ "$RESULT" != "SUCCESS" ]]; then
+            echo "❌ Serve Model job failed with result: $RESULT"
+            exit 1
+          fi
+          echo "✅ Serve Model job completed successfully!"
