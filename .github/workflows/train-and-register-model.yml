@@ -33,11 +33,30 @@ jobs:
 
       - name: Trigger Databricks Job
         run: |
-          databricks jobs run-now --job-id 480467520180602 \
+          RUN_ID=$(databricks jobs run-now --job-id 480467520180602 \
           --notebook-params '{
             "SNOWFLAKE_ACCOUNT": "${{ secrets.SNOWFLAKE_ACCOUNT }}",
             "SNOWFLAKE_USER": "${{ secrets.SNOWFLAKE_USER }}",
             "SNOWFLAKE_PASSWORD": "${{ secrets.SNOWFLAKE_PASSWORD }}",
             "SNOWFLAKE_WAREHOUSE": "${{ secrets.SNOWFLAKE_WAREHOUSE }}",
             "SNOWFLAKE_DATABASE": "${{ secrets.SNOWFLAKE_DATABASE }}"
-          }'
+          }'\
+            --output JSON | jq -r '.run_id')
+
+          echo "Triggered run_id: $RUN_ID"
+
+          STATUS="PENDING"
+          while [[ "$STATUS" == "PENDING" || "$STATUS" == "RUNNING" || "$STATUS" == "QUEUED" ]]; do
+            sleep 15
+            STATUS=$(databricks runs get --run-id "$RUN_ID" --output JSON | jq -r '.state.life_cycle_state')
+            echo "Current status: $STATUS"
+          done
+
+          RESULT=$(databricks runs get --run-id "$RUN_ID" --output JSON | jq -r '.state.result_state')
+
+          if [[ "$RESULT" != "SUCCESS" ]]; then
+            echo "❌ Job failed with result: $RESULT"
+            exit 1
+          fi
+
+          echo "✅ Job completed successfully!"
