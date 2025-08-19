@@ -51,11 +51,11 @@ jobs:
           STATUS="PENDING"
           while [[ "$STATUS" == "PENDING" || "$STATUS" == "RUNNING" || "$STATUS" == "QUEUED" ]]; do
             sleep 30
-            STATUS=$(databricks jobs get-run --profile github --run-id "$RUN_ID" | jq -r '.state.life_cycle_state')
+            STATUS=$(databricks jobs get-run "$RUN_ID" --profile github | jq -r '.state.life_cycle_state')
             echo "Current status: $STATUS"
           done
 
-          RESULT=$(databricks jobs get-run --profile github --run-id "$RUN_ID" | jq -r '.state.result_state')
+          RESULT=$(databricks jobs get-run "$RUN_ID" --profile github | jq -r '.state.result_state')
 
           if [[ "$RESULT" != "SUCCESS" ]]; then
             echo "❌ Job failed with result: $RESULT"
