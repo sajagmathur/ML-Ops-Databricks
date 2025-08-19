@@ -1,5 +1,5 @@
 # Databricks notebook source
-# !pip install snowflake
+ !pip install snowflake
 
 # COMMAND ----------
 
