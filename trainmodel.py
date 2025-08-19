@@ -10,6 +10,7 @@
 # train.py
 import os
 import sys
+import dbutils
 # sys.stdout.reconfigure(encoding='utf-8')
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -20,15 +21,30 @@ import joblib
 import pandas as pd
 import snowflake.connector
 
-# Snowflake credentials (replace these with environment variables or secrets in production)
+# Retrieve notebook parameters passed via --notebook-params
+user = dbutils.widgets.get("SNOWFLAKE_USER")
+password = dbutils.widgets.get("SNOWFLAKE_PASSWORD")
+account = dbutils.widgets.get("SNOWFLAKE_ACCOUNT")
+warehouse = dbutils.widgets.get("SNOWFLAKE_WAREHOUSE")
+database = dbutils.widgets.get("SNOWFLAKE_DATABASE")
+
+# Optional: set them as environment variables if you need
+os.environ["SNOWFLAKE_USER"] = user
+os.environ["SNOWFLAKE_PASSWORD"] = password
+os.environ["SNOWFLAKE_ACCOUNT"] = account
+os.environ["SNOWFLAKE_WAREHOUSE"] = warehouse
+os.environ["SNOWFLAKE_DATABASE"] = database
+
+# Connect to Snowflake
 conn = snowflake.connector.connect(
-    user=os.getenv("SNOWFLAKE_USER"),
-    password=os.getenv("SNOWFLAKE_PASSWORD"),
-    account=os.getenv("SNOWFLAKE_ACCOUNT"),  # your account locator (from URL)
-    warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
-    database=os.getenv("SNOWFLAKE_DATABASE"),
-    schema='PUBLIC'
+    user=user,
+    password=password,
+    account=account,
+    warehouse=warehouse,
+    database=database,
+    schema="PUBLIC"
 )
+
 
 # SQL query to load the table
 sql_query = "SELECT * FROM ICECREAM"
