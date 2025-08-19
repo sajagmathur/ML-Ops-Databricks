@@ -33,7 +33,7 @@ jobs:
       - name: Trigger Databricks Job and Wait
         run: |
           echo "Triggering job..."
-          RESPONSE=$(databricks jobs run-now --profile github --job-id 480467520180602 \
+          RESPONSE=$(databricks jobs run-now 480467520180602 --profile github \
             --json '{
               "notebook_params": {
                 "SNOWFLAKE_ACCOUNT": "'"${{ secrets.SNOWFLAKE_ACCOUNT }}"'",
