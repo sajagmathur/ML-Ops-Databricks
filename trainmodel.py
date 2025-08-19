@@ -22,11 +22,11 @@ import snowflake.connector
 
 # Snowflake credentials (replace these with environment variables or secrets in production)
 conn = snowflake.connector.connect(
-    user='SAJAGMATHUR',
-    password='Thati10pur@719',
-    account='onmhvte-rm57820',  # your account locator (from URL)
-    warehouse='COMPUTE_WH',
-    database='ICECREAMDB',
+    user=os.getenv("SNOWFLAKE_USER"),
+    password=os.getenv("SNOWFLAKE_PASSWORD"),
+    account=os.getenv("SNOWFLAKE_ACCOUNT"),  # your account locator (from URL)
+    warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
+    database=os.getenv("SNOWFLAKE_DATABASE"),
     schema='PUBLIC'
 )
 
